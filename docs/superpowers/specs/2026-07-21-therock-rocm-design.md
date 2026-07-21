@@ -30,6 +30,11 @@ TheRock is a **monolithic prebuilt SDK tarball, per gfx arch** (`therock-dist-li
 - **gfx1150 (this P14s, now):** Vulkan vs TheRock-ROCm-7.1x. Informative even though README shows Vulkan beats *old* ROCm here — the question is whether *new* ROCm closes/reverses the gap.
 - **gfx1151 (incoming Strix Halo):** the real target. Re-run when hardware lands. This is where old ROCm is broken, so it's the decisive A/B.
 
+### Kernel is a controlled variable (and a deliverable)
+The repo's only kernel guidance today is a **`>= 6.14` floor driven by the NPU (`amdxdna`)** (README:114, hard assertion `modules/amd-npu.nix:217`) — there is **no gfx1151-GPU-tuned recommendation**. Real-world Strix Halo guidance clusters at **Linux 6.18.4+** (RDNA3.5 patches merged), with **6.19.x misidentifying gfx1151 as gfx1100** (needs `HSA_OVERRIDE_GFX_VERSION`) — so newer ≠ better. Therefore:
+- The A/B must **hold the kernel constant at a known-good gfx1151 version**, or the Vulkan-vs-ROCm result is confounded.
+- Phase 0 output includes the **validated known-good gfx1151 kernel** (for both Vulkan and TheRock ROCm), fed back into a **README gfx1151 kernel recommendation** (a per-host note, *not* a global assertion bump — the 6.14 floor stays correct for gfx1150 / Hawk Point).
+
 ### How to get a TheRock-ROCm backend *cheaply* for the eval (no vendoring commitment)
 Use the community flakes as a **bridge/cookbook**, not a dependency: build a throwaway TheRock-ROCm `llama-server` (and sd `sd-server` if feasible) from `demyanrogozhin/nix-llama-rocm` or `hellas-ai/nix-strix-halo` (adding a gfx1150 target/pin if their set omits it), and point the benchmark harness at it. This avoids paying the vendoring cost before the data justifies it. (The critic explicitly endorses hellas-ai as a legitimate short-term bridge / reference.)
 
