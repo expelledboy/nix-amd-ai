@@ -39,8 +39,10 @@ The repo's only kernel guidance today is a **`>= 6.14` floor driven by the NPU (
 Use the community flakes as a **bridge/cookbook**, not a dependency: build a throwaway TheRock-ROCm `llama-server` (and sd `sd-server` if feasible) from `demyanrogozhin/nix-llama-rocm` or `hellas-ai/nix-strix-halo` (adding a gfx1150 target/pin if their set omits it), and point the benchmark harness at it. This avoids paying the vendoring cost before the data justifies it. (The critic explicitly endorses hellas-ai as a legitimate short-term bridge / reference.)
 
 ### Decision gate (end of Phase 0)
-- **TheRock ROCm clearly beats Vulkan** on a backend that matters (esp. gfx1151) → proceed to Integration (below), with the full design + critic fixes.
-- **Vulkan wins or ties** → **Vulkan-first**: keep llama+whisper on Vulkan, add a Vulkan sd-cpp if that's the gap, keep nixpkgs ROCm only as fallback/tooling. **Shelve the TheRock vendor.** Document the numbers so this isn't re-litigated.
+Split by **context regime** (community gfx1151 data shows the answer flips with context length — short: Vulkan; long/agentic: optimized ROCm+rocWMMA):
+- **Long-context (8K–32K+, the coding-agent regime):** if optimized **TheRock ROCm + rocWMMA + FA + hipBLASLt** holds decode where Vulkan collapses (community shows ~51 vs ~32 t/s @ 8K) → **GO** for a per-arch (gfx1151-only) rocWMMA ROCm llama path → Integration (below) + critic fixes.
+- **Short-context / image-gen / whisper:** **Vulkan-first** — keep llama-short + whisper on Vulkan, add a Vulkan sd-cpp (independently worth doing now — image-gen isn't long-token-decode), keep nixpkgs ROCm as fallback/tooling.
+- The realistic outcome is likely **both**: Vulkan for short-ctx + image-gen, an optimized-ROCm gfx1151 path for long-ctx LLM. gfx1150 stays Vulkan (rocWMMA regressed there). Document the numbers either way.
 
 ---
 

@@ -277,3 +277,38 @@ questions remain genuinely open there, both hardware-gated:
 do not vendor TheRock on the "newer ROCm" premise alone. Hold the go/no-go
 until the gfx1151 runs (Task 5) — decisive for llama, and the first look at
 the sd-cpp question where ROCm has its best case.
+
+## Community gfx1151 data changes the regime this eval measured (IMPORTANT)
+
+The gfx1150 A/B above measured **short context (pp512/tg128) with a plain HIP
+build (no rocWMMA/hipBLASLt tuning)** — which is ROCm's *worst* case. The
+canonical Strix Halo benchmarks (llm-tracker.info/_TOORG/Strix-Halo,
+hogeheer499/strix-halo-guide, llama.cpp discussion #15021) show two things
+that flip the picture for the coding-agent (long-context) goal:
+
+- **Short ctx (pp512/tg128), gfx1151:** fully-optimized **HIP + rocWMMA + FA +
+  hipBLASLt** ≈ Vulkan (pp512 986 vs 884 — HIP *wins* prefill; tg128 50.6 vs
+  52.7 — Vulkan wins decode by a hair). Not the loss plain-HIP showed.
+- **Long ctx (8K), gfx1151:** the reversal — **HIP+rocWMMA+FA holds tg8192
+  ≈51 t/s while Vulkan+FA collapses to ≈32 t/s (~60% ROCm decode win)**;
+  Vulkan keeps a prefill lead. llm-tracker's explicit call: for
+  agentic/long-context, HIP+rocWMMA+FA is superior.
+
+**Implications:**
+1. "Vulkan-first for llama" holds only for **short context**. For long
+   context (8K–32K+, the coding-agent regime — the actual reason for Strix
+   Halo), **optimized ROCm+rocWMMA wins decode by a wide margin.**
+2. The winning ROCm config is specific: **rocWMMA + Flash-Attention +
+   hipBLASLt**. The flake's `llama-cpp-rocm` is plain (rocWMMA off — it
+   *regressed* on gfx1150). Realizing the gfx1151 win needs a **per-arch
+   build: rocWMMA ON for gfx1151, OFF for gfx1150.**
+3. On gfx1151 nixpkgs ROCm 7.2.3 *faults*, so the long-context win likely
+   needs **newer ROCm (TheRock) + rocWMMA + FA + hipBLASLt** together — a
+   narrow, specific case for up-to-date ROCm, not the vague "newer is better"
+   premise (which this gfx1150 run correctly falsified).
+
+**Task 5 correction:** the decisive gfx1151 eval MUST test **long context
+(8K/16K/32K)** with the **fully-optimized ROCm build (rocWMMA+FA+hipBLASLt)**,
+not pp512/tg128 plain-HIP — otherwise it measures ROCm's worst case and
+misses its only win. Image-gen (sd-cpp) is unaffected (not long-token-decode)
+— Vulkan sd-cpp remains the right cheap path there.

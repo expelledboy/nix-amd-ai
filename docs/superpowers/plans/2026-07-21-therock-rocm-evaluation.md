@@ -174,6 +174,11 @@ Then stop and report the gfx1150 numbers + B3 build cost to the maintainer befor
 
 Do not start until the gfx1151 machine is in hand. This is the run that actually decides.
 
+**METHODOLOGY CORRECTION (from community gfx1151 data — see `docs/therock-eval-results.md` "Community gfx1151 data" section):** the gfx1150 run measured ROCm's *worst* case (short ctx, plain HIP). On gfx1151, ROCm's win is at **long context with a fully-optimized build**. So Task 5 MUST:
+- Bench at **long context (8K / 16K / 32K)**, not just pp512/tg128. Report pp and tg at each length — the crossover is the whole point (Vulkan decode collapses ~32 t/s @ 8K while HIP+rocWMMA holds ~51 t/s).
+- Build the ROCm/HIP side **fully optimized: rocWMMA ON + Flash-Attention + hipBLASLt** (not plain HIP). Use TheRock ROCm (nixpkgs 7.2.3 faults on gfx1151). Vulkan side keeps `-fa` too.
+- Frame the go/no-go around the **coding-agent (long-context) regime**, which is the actual reason for Strix Halo — not short-context chat.
+
 **Files:**
 - Modify: `docs/therock-eval-results.md`
 - Modify (only if go): `README.md` (kernel recommendation)
