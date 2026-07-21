@@ -252,3 +252,28 @@ across both models and both metrics — see the summary at the top of this
 doc and the B3 build-effort section for why TheRock is still notably harder
 to stand up than Vulkan (which just works via nixpkgs' `llama-cpp-vulkan`
 with zero extra toolchain wrangling).
+
+## gfx1150 preliminary verdict (Phase 0, Task 4)
+
+**For llama.cpp on gfx1150, up-to-date TheRock ROCm does NOT beat Vulkan —
+it loses by ~3–5% prefill and ~10–11% decode, and costs far more to build
+and ship.** This extends the repo README's existing "Vulkan wins" finding
+from *old* nixpkgs ROCm 7.2.3 to *current* TheRock ROCm 7.13.0: newer ROCm
+did not close the gap. Cost side: the SDK is a ~350 KB/s / 16 GB fetch and
+the build needed four undocumented NixOS-specific fixes (~2 h). So the
+premise "latest ROCm ⇒ better llama.cpp" is **falsified on this hardware**.
+
+**This is NOT the decisive result.** It is gfx1150 (Strix Point), where both
+backends already work. The real target is **gfx1151 (Strix Halo)**, and two
+questions remain genuinely open there, both hardware-gated:
+
+1. **gfx1151 llama.cpp:** old nixpkgs ROCm 7.2.3 is *broken* on gfx1151 (VRAM
+   faults), and TheRock ships *native gfx1151 kernels*. The gfx1150 numbers
+   strongly suggest Vulkan still wins — but only the gfx1151 A/B settles it.
+2. **Image gen (sd-cpp):** not yet tested; the likeliest place ROCm still
+   beats Vulkan. Needs a Vulkan-sd-cpp-vs-TheRock-ROCm-sd A/B.
+
+**Lean:** for llama.cpp, Vulkan-first looks right even against latest ROCm;
+do not vendor TheRock on the "newer ROCm" premise alone. Hold the go/no-go
+until the gfx1151 runs (Task 5) — decisive for llama, and the first look at
+the sd-cpp question where ROCm has its best case.
