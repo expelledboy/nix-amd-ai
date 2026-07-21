@@ -49,7 +49,9 @@ Expected: a markdown table with non-trivial `pp`/`tg` t/s. Capture the exact num
 
 In a second shell during the run:
 ```bash
-amdgpu_top -d 2>/dev/null | grep -iE 'gfx|gpu' | head    # GPU busy % should climb
+# NOTE: `-d` is a one-shot device-info dump, NOT sampling. For a busy% time series use JSON sampling:
+# amdgpu_top -J -n <iters> -s <ms>  and read devices[0].gpu_activity.GFX
+amdgpu_top -J -n 20 -s 150 2>/dev/null | jq '.devices[0].gpu_activity.GFX'   # GPU busy % should climb well above idle
 ```
 Expected: GPU utilisation rises during the bench (not ~0 with CPU pegged). If the GPU stays idle, the run is invalid — stop and fix `-ngl`/device selection before recording.
 
