@@ -460,7 +460,7 @@ whispercpp          cpu         installed       v1.8.4
                     vulkan      installed       v1.8.4
 ```
 
-Quick image-gen smoke test (ROCm path):
+Quick image-gen smoke test:
 
 ```bash
 lemonade pull SD-Turbo
@@ -470,7 +470,7 @@ curl -s -X POST http://localhost:13305/api/v1/images/generations \
   | jq -r '.data[0].b64_json' | base64 -d > out.png
 ```
 
-Lemond logs should show `Starting server on port 8001 (backend: rocm)` and *no* `Installing sd-server` line — sd-server is invoked directly from the nix store.
+With both `enableROCm` and `enableVulkan` set, lemond logs should show `Starting server on port 8001 (backend: vulkan)` and *no* `Installing sd-server` line — sd-server is invoked directly from the nix store. sd-cpp's `auto` backend selection prefers Vulkan whenever both variants are already installed: 11.5.1 made that the case for every engine (llamacpp, sd-cpp, whispercpp), matching llamacpp's pre-existing Vulkan-first preference order. To exercise the ROCm path specifically, pin it with `hardware.amd-npu.lemonade.settings.sdcpp.backend = "rocm";` (the runtime config section is `sdcpp`, not `sd-cpp`).
 
 ### Benchmarking
 
