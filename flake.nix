@@ -388,6 +388,43 @@
                 touch $out
               '';
 
+            module-eval-lemonade-allowed-origins = let
+              sys =
+                (inputs.nixpkgs.lib.nixosSystem {
+                  inherit system;
+                  modules = [
+                    inputs.self.nixosModules.default
+                    {
+                      boot.loader.grub.enable = false;
+                      fileSystems."/" = {
+                        device = "/dev/sda1";
+                        fsType = "ext4";
+                      };
+                      hardware.amd-npu = {
+                        enable = true;
+                        enableLemonade = true;
+                        lemonade = {
+                          user = "testuser";
+                          host = "0.0.0.0";
+                          allowedOrigins = ["https://app.example.com" "http://192.168.1.10:3000"];
+                        };
+                      };
+                      users.users.testuser = {
+                        isNormalUser = true;
+                        extraGroups = ["video" "render"];
+                      };
+                    }
+                  ];
+                }).config;
+            in
+              pkgs.runCommand "module-eval-lemonade-allowed-origins" {
+                unit = sys.systemd.units."lemond.service".unit;
+              } ''
+                grep -qF 'Environment="LEMONADE_ALLOWED_ORIGINS=https://app.example.com,http://192.168.1.10:3000"' "$unit"/lemond.service
+
+                touch $out
+              '';
+
             # The checks above prove the unit renders and that the hook behaves
             # when invoked by hand. This one boots it: lemond must actually reach
             # active with the ExecStartPre in front of it. That is the failure
@@ -522,6 +559,8 @@
                 || { echo "missing/changed NIX_LD"; exit 1; }
               grep -q 'NIX_LD_LIBRARY_PATH=/run/current-system/sw/share/nix-ld/lib' "$unit" \
                 || { echo "missing/changed NIX_LD_LIBRARY_PATH"; exit 1; }
+              ! grep -q 'LEMONADE_ALLOWED_ORIGINS' "$unit" \
+                || { echo "LEMONADE_ALLOWED_ORIGINS set on a host that never listed origins"; exit 1; }
               touch $out
             '';
 
