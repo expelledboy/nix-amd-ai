@@ -66,14 +66,20 @@ in
       done
 
       # Repoint the ELF interpreter (FHS /lib64/ld-linux-x86-64.so.2 -> nix
-      # loader) on the executables the launcher actually execs — python3 and the
-      # bundled clang (Triton JIT). Leave every runpath intact.
+      # loader) on every executable in the bundle's bin dirs, not just the ones
+      # the launcher execs directly: clang re-execs clang-N, and torch's
+      # cpp_extension build path shells out to ninja, so a hand-picked list
+      # keeps missing binaries. Leave every runpath intact.
       loader=${stdenv.cc.bintools.dynamicLinker}
-      for exe in $prefix/bin/python3 $prefix/bin/python3.* \
-                 $prefix/lib/python3.*/site-packages/_rocm_sdk_*/lib/llvm/bin/clang; do
-        if [ -f "$exe" ] && patchelf --print-interpreter "$exe" >/dev/null 2>&1; then
-          patchelf --set-interpreter "$loader" "$exe"
-        fi
+      for d in $prefix/bin \
+               $prefix/lib/python3.*/site-packages/_rocm_sdk_*/bin \
+               $prefix/lib/python3.*/site-packages/_rocm_sdk_*/lib/llvm/bin; do
+        [ -d "$d" ] || continue
+        for exe in "$d"/*; do
+          if [ -f "$exe" ] && patchelf --print-interpreter "$exe" >/dev/null 2>&1; then
+            patchelf --set-interpreter "$loader" "$exe"
+          fi
+        done
       done
 
       # Launcher shebang is #!/bin/bash (FHS); rewrite to the nix bash.
