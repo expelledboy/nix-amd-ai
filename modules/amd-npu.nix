@@ -195,9 +195,7 @@ in {
       description = ''
         Whether to wire the vLLM ROCm backend (vllm:rocm) into lemonade,
         repackaged from the upstream lemonade-sdk/vllm-rocm prebuilt. Requires
-        enableROCm. Strix Halo (gfx1151) needs a kernel with the CWSR fix;
-        lemonade reports vllm:rocm as unsupported otherwise. Experimental —
-        see noamsto/nix-amd-ai#63.
+        enableROCm. Experimental — see noamsto/nix-amd-ai#63.
       '';
     };
 
@@ -207,7 +205,9 @@ in {
       description = ''
         Which lemonade-sdk/vllm-rocm prebuilt to install: gfx1150 (Strix Point)
         or gfx1151 (Strix Halo). Each bundles a TheRock ROCm built for that
-        exact target.
+        exact target. gfx1151 needs a kernel with the CWSR fix, backported or
+        not, or ROCm can crash any ROCm backend, not just vLLM (see the
+        eval-time warning this module emits when enableROCm is also set).
       '';
     };
 
@@ -398,6 +398,18 @@ in {
         message = "hardware.amd-npu.gpuMemory.pagePoolSizeGiB must be <= ttmSizeGiB.";
       }
     ];
+
+    # gfx1151 requires a kernel with the CWSR VGPR-count fix or ROCm can crash
+    # any ROCm backend (llamacpp:rocm, sd-cpp:rocm, vllm:rocm), not just vllm.
+    # A warning, not an assertion: the fix can be backported to a kernel older
+    # than 6.18.4, which a bare version check cannot detect.
+    warnings =
+      optional
+      (cfg.enableLemonade
+        && cfg.enableROCm
+        && cfg.vllmGpuTarget == "gfx1151"
+        && !versionAtLeast config.boot.kernelPackages.kernel.version "6.18.4")
+      "hardware.amd-npu.vllmGpuTarget = \"gfx1151\" needs Linux kernel >= 6.18.4 (or the CWSR fix backported) or ROCm can miscalculate VGPR counts and crash llamacpp:rocm, sd-cpp:rocm, and vllm:rocm. Kernel ${config.boot.kernelPackages.kernel.version} is below that; if it carries a backported fix, verify on the host with: grep -E \"cwsr_size|ctl_stack_size\" /sys/class/kfd/kfd/topology/nodes/*/properties";
 
     # Kernel configuration (NPU-only)
     boot.kernelModules = optionals cfg.enableNPU ["amdxdna"];
