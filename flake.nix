@@ -325,6 +325,60 @@
                 ];
               }).config.systemd.services.lemond.environment.LEMONADE_DEFAULTS_PATH;
 
+            # gfx1151 + ROCm below the CWSR-fix kernel version must warn (not
+            # assert — the fix may be backported to an older kernel); gfx1150
+            # and an already-new-enough kernel must both stay silent.
+            module-eval-cwsr-warning = let
+              mkSys = extraModule:
+                (inputs.nixpkgs.lib.nixosSystem {
+                  inherit system;
+                  modules = [
+                    inputs.self.nixosModules.default
+                    (pkgs.lib.recursiveUpdate {
+                      boot.loader.grub.enable = false;
+                      fileSystems."/" = {
+                        device = "/dev/sda1";
+                        fsType = "ext4";
+                      };
+                      hardware.amd-npu = {
+                        enable = true;
+                        enableNPU = false;
+                        enableFastFlowLM = false;
+                        enableLemonade = true;
+                        enableROCm = true;
+                        lemonade.user = "testuser";
+                      };
+                      users.users.testuser = {
+                        isNormalUser = true;
+                        extraGroups = ["video" "render"];
+                      };
+                    } extraModule)
+                  ];
+                }).config.warnings;
+              oldKernelGfx1151 = mkSys {
+                hardware.amd-npu.vllmGpuTarget = "gfx1151";
+                boot.kernelPackages = pkgs.linuxPackages_6_12;
+              };
+              oldKernelGfx1150 = mkSys {
+                hardware.amd-npu.vllmGpuTarget = "gfx1150";
+                boot.kernelPackages = pkgs.linuxPackages_6_12;
+              };
+              newKernelGfx1151 = mkSys {
+                hardware.amd-npu.vllmGpuTarget = "gfx1151";
+              };
+            in
+              pkgs.runCommand "module-eval-cwsr-warning" {
+                old1151 = builtins.toJSON oldKernelGfx1151;
+                old1150 = builtins.toJSON oldKernelGfx1150;
+                new1151 = builtins.toJSON newKernelGfx1151;
+                passAsFile = ["old1151" "old1150" "new1151"];
+              } "
+                grep -q cwsr_size \"$old1151Path\" || { echo \"gfx1151 + old kernel must warn\"; exit 1; }
+                grep -q cwsr_size \"$old1150Path\" && { echo \"gfx1150 must not warn\"; exit 1; }
+                grep -q cwsr_size \"$new1151Path\" && { echo \"gfx1151 + new kernel must not warn\"; exit 1; }
+                touch $out
+              ";
+
             # lemonade.settings must deep-merge over the module's computed
             # defaults — overriding one key without dropping its siblings — and
             # the unit must re-apply them on every start, else the option is
