@@ -239,6 +239,15 @@ rewrites the file through a fresh `ofstream` + rename, which resets its mode to
 `0644` on every start; the hook preserves whatever mode it finds, but it cannot
 hold the file tighter than lemond leaves it.
 
+Lemonade >=11.5.0 stopped sending `Access-Control-Allow-Origin: *` by
+default, so non-loopback browsers get a 403 `Origin not allowed` unless their
+origin is listed in `LEMONADE_ALLOWED_ORIGINS`. Like host/port, this is env-only
+— there is no config.json key, so `lemonade.settings` cannot reach it; set
+`lemonade.allowedOrigins` instead. Loopback origins and non-http(s) desktop
+schemes are always allowed, so this only matters once `lemonade.host` is
+bound to something a LAN or remote browser can reach; the module warns if
+you set the former without the latter.
+
 ### Tauri desktop app: download progress is fragile when backgrounded
 
 WebKitGTK suspends the network process for windows that are minimized, hidden, or moved to another workspace. That kills the SSE progress stream lemond uses for downloads at ~60–90 s. Without our patch, that nuked the whole download mid-flight. With the patch, the download keeps running server-side and finishes regardless — but the UI stops seeing progress until you refocus the window (and may need a refresh to pick up the result). For very large pulls, prefer the regular browser at `http://localhost:13305` or `lemonade pull <model>` from the CLI; both survive backgrounding cleanly.

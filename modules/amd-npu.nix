@@ -274,6 +274,27 @@ in {
           persisted in `''${LEMONADE_CACHE_DIR:-~/.cache/lemonade}/config.json`.
         '';
       };
+
+      allowedOrigins = mkOption {
+        type = types.listOf types.str;
+        default = [];
+        example = ["https://app.example.com" "http://192.168.1.10:3000"];
+        description = ''
+          Origins allowed to make cross-origin browser requests, set via
+          `LEMONADE_ALLOWED_ORIGINS`. 11.5.0 dropped the
+          `Access-Control-Allow-Origin: *` default and this is
+          env-only — there is no config.json key, so `lemonade.settings`
+          cannot reach it. Loopback origins (localhost, 127.0.0.1, ::1,
+          *.localhost) and non-http(s) desktop schemes (tauri://, file://,
+          vscode-webview://) are always allowed regardless of this setting,
+          so it is only needed for browsers on other machines reaching a
+          non-loopback `lemonade.host`. `["*"]` allows any
+          origin — combine with an API key (upstream's
+          `LEMONADE_API_KEY`, not wired up here) or requests are
+          unauthenticated and open to cross-origin attacks from any site the
+          browser visits.
+        '';
+      };
     };
 
     ds4 = {
@@ -399,6 +420,11 @@ in {
       }
     ];
 
+    warnings =
+      optional
+      (cfg.enableLemonade && cfg.lemonade.allowedOrigins == [] && !builtins.elem cfg.lemonade.host ["localhost" "127.0.0.1" "::1"])
+      "hardware.amd-npu.lemonade.host is non-loopback but lemonade.allowedOrigins is empty; browsers on other machines will get a 403 'Origin not allowed' error. Set lemonade.allowedOrigins to the origins that should reach it.";
+
     # Kernel configuration (NPU-only)
     boot.kernelModules = optionals cfg.enableNPU ["amdxdna"];
 
@@ -519,6 +545,11 @@ in {
           # them, so koko's loader can't find them without re-exporting here.
           NIX_LD = config.environment.sessionVariables.NIX_LD;
           NIX_LD_LIBRARY_PATH = config.environment.sessionVariables.NIX_LD_LIBRARY_PATH;
+        }
+        // optionalAttrs (cfg.lemonade.allowedOrigins != []) {
+          # env-only in lemonade >=11.5.0 — no config.json key to route this
+          # through lemonade.settings.
+          LEMONADE_ALLOWED_ORIGINS = concatStringsSep "," cfg.lemonade.allowedOrigins;
         };
       serviceConfig = {
         Type = "simple";
