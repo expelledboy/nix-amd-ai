@@ -559,6 +559,8 @@
                 || { echo "missing/changed NIX_LD"; exit 1; }
               grep -q 'NIX_LD_LIBRARY_PATH=/run/current-system/sw/share/nix-ld/lib' "$unit" \
                 || { echo "missing/changed NIX_LD_LIBRARY_PATH"; exit 1; }
+              ! grep -q 'LEMONADE_ALLOWED_ORIGINS' "$unit" \
+                || { echo "LEMONADE_ALLOWED_ORIGINS set on a host that never listed origins"; exit 1; }
               touch $out
             '';
 
