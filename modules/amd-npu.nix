@@ -214,6 +214,7 @@ in {
     vllmGpuTarget = mkOption {
       type = types.enum ["gfx1150" "gfx1151"];
       default = cfg.gpuTarget;
+      defaultText = lib.literalExpression "config.hardware.amd-npu.gpuTarget";
       description = ''
         Which lemonade-sdk/vllm-rocm prebuilt to install: gfx1150 (Strix Point)
         or gfx1151 (Strix Halo). Each bundles a TheRock ROCm built for that
@@ -449,7 +450,7 @@ in {
         && cfg.enableROCm
         && (cfg.gpuTarget == "gfx1151" || cfg.vllmGpuTarget == "gfx1151")
         && !versionAtLeast config.boot.kernelPackages.kernel.version "6.18.4")
-      "hardware.amd-npu.gpuTarget = \"gfx1151\" needs Linux kernel >= 6.18.4 (or the CWSR fix backported) or ROCm can miscalculate VGPR counts and crash llamacpp:rocm, sd-cpp:rocm, and vllm:rocm. Kernel ${config.boot.kernelPackages.kernel.version} is below that; if it carries a backported fix, verify on the host with: grep -E \"cwsr_size|ctl_stack_size\" /sys/class/kfd/kfd/topology/nodes/*/properties";
+      "A gfx1151 target is selected (hardware.amd-npu.gpuTarget / vllmGpuTarget), which needs Linux kernel >= 6.18.4 (or the CWSR fix backported) or ROCm can miscalculate VGPR counts and crash llamacpp:rocm, sd-cpp:rocm, and vllm:rocm. Kernel ${config.boot.kernelPackages.kernel.version} is below that; if it carries a backported fix, verify on the host with: grep -E \"cwsr_size|ctl_stack_size\" /sys/class/kfd/kfd/topology/nodes/*/properties";
 
     # Kernel configuration (NPU-only)
     boot.kernelModules = optionals cfg.enableNPU ["amdxdna"];
