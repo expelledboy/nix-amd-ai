@@ -414,7 +414,7 @@ Notes: FLM's TTFT is dominated by a one-off NPU compile-to-cache; steady-state d
 
 ### Strix Halo (gfx1151 / XDNA2 NPU5): NPU measured
 
-The tables above are Strix Point. These rows are from a Strix Halo host: ASUS ROG Flow Z13 (GZ302EA), Ryzen AI MAX+ 395, 128 GB, NixOS 26.11, kernel 7.1.0 with in-tree `amdxdna` 0.8, NPU firmware 1.1.2.65, `fastflowlm` 0.9.43. The NPU reports **8 columns** here, versus fewer on Strix Point, which is the likely source of the throughput difference against community Strix Point figures for the same model.
+The tables above are Strix Point. These rows are from a Strix Halo host: ASUS ROG Flow Z13 (GZ302EA), Ryzen AI MAX+ 395, 128 GB, NixOS 26.11, kernel 7.1.0 with in-tree `amdxdna` 0.8, NPU firmware 1.1.2.65, `fastflowlm` 0.9.43. These figures run ahead of community Strix Point numbers for the same model, but the cause is not established here and nothing below depends on it. (It is not the column count: Strix Point, Krackan and Halo are all XDNA2 with the same 8-column array, as noted above for Krackan.)
 
 | Test | Result |
 | ---- | ------ |
